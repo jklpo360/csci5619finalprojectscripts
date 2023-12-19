@@ -166,17 +166,17 @@ func _label_swap(from_area: Area3D, to_area: Area3D) -> void:
 	if swap_counter != 0.0:
 		return
 	
-	if from_area.name == HEAD_COLLIDER_NAME:
+	if from_area.name == "HeadArea3D":
 		head = true
-	if to_area.name == HEAD_COLLIDER_NAME:
+	if to_area.name == "HeadArea3D":
 		head = true
-	if from_area.name == LEFT_HAND_COLLIDER_NAME:
+	if from_area.name == "LeftHandArea3D":
 		left = true
-	if to_area.name == LEFT_HAND_COLLIDER_NAME:
+	if to_area.name == "LeftHandArea3D":
 		left = true
-	if from_area.name == RIGHT_HAND_COLLIDER_NAME:
+	if from_area.name == "RightHandArea3D":
 		right = true
-	if to_area.name == RIGHT_HAND_COLLIDER_NAME:
+	if to_area.name == "RightHandArea3D":
 		right = true
 
 func reset_position():
@@ -186,16 +186,16 @@ func reset_position():
 	self.rotation.y = 0.0
 
 func _on_head_area_3d_area_entered(area):
-	if area.name == LEFT_HAND_COLLIDER_NAME or area.name == RIGHT_HAND_COLLIDER_NAME:
+	if area.name == "LeftHandArea3D" or area.name == "RightHandArea3D":
 		_label_swap($HeadArea3D, area)
 
 
 func _on_left_controller_area_3d_area_entered(area):
-	if area.name == HEAD_COLLIDER_NAME or area.name == RIGHT_HAND_COLLIDER_NAME:
+	if area.name == "HeadArea3D" or area.name == "RightHandArea3D":
 		_label_swap($LeftHandArea3D, area)
 
 func _on_right_controller_area_3d_area_entered(area):
-	if area.name == LEFT_HAND_COLLIDER_NAME or area.name == HEAD_COLLIDER_NAME:
+	if area.name == "LeftHandArea3D" or area.name == "HeadArea3D":
 		_label_swap($RightHandArea3D, area)
 
 func _on_user_reset():
