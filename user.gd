@@ -24,12 +24,6 @@ var left:= false # Flag for swapping with left controller
 var right:= false # Flag for swapping with right controller
 var swap_counter:= 0.0 # Counter to track the cooldown of swapping controls
 
-var left_bound:= -4.8
-var right_bound:= 4.8
-var back_bound:= 9.8
-var front_bound:= -39.8
-
-var winning_counter:= 0
 
 
 
@@ -40,9 +34,10 @@ func _ready():
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta):
 	
-	if winning_counter == 4:
-		win.emit()
-	
+  # Reset X and Z rotation because godot physics are cool!
+  self.rotation.x = 0.0
+  self.rotation.z = 0.0
+
 	# Snap turn cooldown update
 	if self.snap_turn_counter != 0.0:
 		self.snap_turn_counter -= delta
@@ -158,16 +153,6 @@ func _process(delta):
 
 			# reverse the translation to move back to the original position
 			self.translate($XRCamera3D.position * -1)
-	if winning_counter != 4:
-		if self.position.x > right_bound:
-			self.position.x = right_bound
-		elif self.position.x < left_bound:
-			self.position.x = left_bound
-		
-		if self.position.z > back_bound:
-			self.position.z = back_bound
-		elif self.position.z < front_bound:
-			self.position.z = front_bound
 
 func process_input(input_name: String, input_value: Vector2):
 	if input_name == "primary":
@@ -181,51 +166,41 @@ func _label_swap(from_area: Area3D, to_area: Area3D) -> void:
 	if swap_counter != 0.0:
 		return
 	
-	if from_area.name == "HeadArea3D":
+	if from_area.name == HEAD_COLLIDER_NAME:
 		head = true
-	if to_area.name == "HeadArea3D":
+	if to_area.name == HEAD_COLLIDER_NAME:
 		head = true
-	if from_area.name == "LeftArea3D":
+	if from_area.name == LEFT_HAND_COLLIDER_NAME:
 		left = true
-	if to_area.name == "LeftArea3D":
+	if to_area.name == LEFT_HAND_COLLIDER_NAME:
 		left = true
-	if from_area.name == "RightArea3D":
+	if from_area.name == RIGHT_HAND_COLLIDER_NAME:
 		right = true
-	if to_area.name == "RightArea3D":
+	if to_area.name == RIGHT_HAND_COLLIDER_NAME:
 		right = true
-
 
 func reset_position():
 	self.position.x = 0.0
+  self.position.y = 0.0
 	self.position.z = 0.0
-	self.rotation.y = 0
-	self.winning_counter = 0
-
+	self.rotation.y = 0.0
 
 func _on_head_area_3d_area_entered(area):
-	if area.name == "LeftArea3D" or area.name == "RightArea3D":
-		_label_swap(%XRCamera3D/HeadArea3D, area)
+	if area.name == LEFT_HAND_COLLIDER_NAME or area.name == RIGHT_HAND_COLLIDER_NAME:
+		_label_swap($HeadArea3D, area)
 
 
 func _on_left_controller_area_3d_area_entered(area):
-	if area.name == "HeadArea3D" or area.name == "RightArea3D":
-		_label_swap(%LeftController/LeftArea3D, area)
-
+	if area.name == HEAD_COLLIDER_NAME or area.name == RIGHT_HAND_COLLIDER_NAME:
+		_label_swap($LeftHandArea3D, area)
 
 func _on_right_controller_area_3d_area_entered(area):
-	if area.name == "LeftArea3D" or area.name == "HeadArea3D":
-		_label_swap(%RightController/RightArea3D, area)
+	if area.name == LEFT_HAND_COLLIDER_NAME or area.name == HEAD_COLLIDER_NAME:
+		_label_swap($RightHandArea3D, area)
 
-
-func _on_area_3d_objective_hit():
-	winning_counter += 1
-
-
-func _on_first_reset():
+func _on_user_reset():
 	self.reset_position()
-	reset.emit()
 
-
-func _on_area_3d_area_entered(area):
-	if area.name == "LeftArea3D" or area.name == "RightArea3D":
+func _on_button_pressed(name):
+	if name == "ax_button" or "by_button":
 		snap_turning = not snap_turning

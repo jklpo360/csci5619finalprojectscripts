@@ -1,3 +1,6 @@
 extends Node
 
-var active_grabbers = []
+var PLAYER_COLLIDER_NAME = "XRUser"
+var HEAD_COLLIDER_NAME = "HeadArea3D"
+var LEFT_HAND_COLLIDER_NAME = "LeftHandArea3D"
+var RIGHT_HAND_COLLIDER_NAME = "RightHandArea3D"
