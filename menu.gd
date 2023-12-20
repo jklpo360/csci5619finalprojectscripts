@@ -2,18 +2,40 @@ extends Node
 
 var last_position = Vector2(0.0, 0.0)
 var mouse_position = Vector2(0.0, 0.0)
-var snap_radius = 10 # radius where the pen snaps to the node and draws a line
-var drawing = false # variable tracking if the trigger on the controller is depressed
-var last_node = null # variable tracking the node that is currently being drawn fron. Is null or 0-11
-var second_to_last_node = null # variable tracking the node that can undo the last line segment. Is null or 0-11
+var snap_radius = 10 # Radius where the pen snaps to the node and draws a line
+var drawing = false # Variable tracking if the trigger on the controller is depressed
+var current_node_index = null # Variable tracking the node that is currently being drawn fron. Is null or 0-11
+var node_history = [] # Stack tracking the nodes previously visited. Drawing pushes a node to the front, and backtracking pops from the front
 
-# format of indices:
+
+# format of line indices:
 #     *  0  *
 #   1   2  3  4
 #  *  5  *  6  *
-#   7   8  9  10
-#     *  11 *
+#   7   8  9  A
+#     *  B  *
+# Format of node indices
+#     3     4
+#            
+#  1     0     2
+#  
+#     5     6
 var current_pattern = 0b000000000000 # twelve bit bitstring
+
+var line_mask_0 = 0b000000000001
+var line_mask_1 = 0b000000000010
+var line_mask_2 = 0b000000000100
+var line_mask_3 = 0b000000001000
+var line_mask_4 = 0b000000010000
+var line_mask_5 = 0b000000100000
+var line_mask_6 = 0b000001000000
+var line_mask_7 = 0b000010000000
+var line_mask_8 = 0b000100000000
+var line_mask_9 = 0b001000000000
+var line_mask_A = 0b010000000000
+var line_mask_B = 0b100000000000
+
+var mask_list = [line_mask_0, line_mask_1, line_mask_2, line_mask_3, line_mask_4, line_mask_5, line_mask_6, line_mask_7, line_mask_8, line_mask_9, line_mask_A, line_mask_B]
 
 # all patterns assume right end of the bitstring is the 0th index
 
@@ -115,11 +137,34 @@ func _process(delta):
 	else:
 		last_position.x = mouse_position.x
 		last_position.y = mouse_position.y
-	# Check for new node snap
-	for node in node_positions:
-		if mouse_position.distance_to(node) < snap_radius:
+		#TODO update the appearance of the cursor line
+	# For each node:
+	for i in node_positions.length:
+		# Check for new node snap
+		if (mouse_position.distance_to(node_positions[i]) < snap_radius) and (i != current_node_index):
+			# Erase last line if backtracking
+			if i == node_history[0]:
+				current_pattern = mask_list[get_line_index(i, node_history[0])] ^ current_pattern
+				current_node_index = node_history.pop_front()
+				#TODO erase last line and update the cursor line to be originating from node with index i
+				break
+
+			# Draw new line if valid
+			elif check_line_available(get_line_index(i, current_node_index)):
+				#TODO draw line from i to last_node index and update the cursor line to be originating from node with index i
+				node_history.push_front(current_node_index)
+				current_node_index = i
+				break
 
 
+
+
+func reset_grid():
+	current_node_index = null
+	node_history = []
+	current_pattern = 0b000000000000
+	drawing = false
+	# TODO: clear lines drawn and the cursor line
   
 func evaluate_drawing() -> string:
 	if pattern == ice_pattern:
@@ -164,7 +209,183 @@ func cast(spell_name):
 		emit(frog)
 	elif spell_name == "time_stop":
 		emit(time_stop)
+
+# Returns the index of the line between two adjacent nodes, and null if they are not adjacent
+func get_line_index(node1, node2):
+	# Initial invalid check
+	if node1 == node2 or node1 == null or node2 == null:
+		return null 
 		
+	# From Center node
+	if node1 == 0:
+		# to Left node
+		elif node2 == 1:
+			# Checks if line is undrawn and returns that
+			return 5
+
+		# to Right node
+		elif node2 == 2:
+			# Checks if line is undrawn and returns that
+			return 6
+
+		# to Top Left node
+		elif node2 == 3:
+			# Checks if line is undrawn and returns that
+			return 2
+
+		# to Top Right node
+		elif node2 == 4:
+			# Checks if line is undrawn and returns that
+			return 3
+
+		# to Bottom Left node
+		elif node2 == 5:
+			# Checks if line is undrawn and returns that
+			return 8
+
+		# to Bottom Right node
+		elif node2 == 6:
+			# Checks if line is undrawn and returns that
+			return 9
+
+		# Impossible due to check at start of function
+		else
+			return null
+
+	# From Left node
+	elif node1 == 1:
+		# to Center node
+		elif node2 == 0:
+			# Checks if line is undrawn and returns that
+			return 5
+
+		# to Top Left node
+		if node2 == 3:
+			# Checks if line is undrawn and returns that
+			return 1
+
+		# to Bottom Left node
+		elif node2 == 5:
+			# Checks if line is undrawn and returns that
+			return 7
+
+		# to Non-adjacent node
+		else 
+			return null
+
+	# From Right node
+	elif node1 == 2:
+		# to Center node
+		elif node2 == 0:
+			# Checks if line is undrawn and returns that
+			return 6
+
+		# to Top Right node
+		if node2 == 4:
+			# Checks if line is undrawn and returns that
+			return 4
+
+		# to Bottom Right node
+		elif node2 == 6:
+			# Checks if line is undrawn and returns that
+			return 10
+
+		# to Non-adjacent node
+		else 
+			return null
+	
+	# From Top Left node
+	elif node1 == 3:
+		# to Center node
+		elif node2 == 0:
+			# Checks if line is undrawn and returns that
+			return 2
+
+		# to Left node
+		if node2 == 1:
+			# Checks if line is undrawn and returns that
+			return 1
+
+		# to Top Right node
+		elif node2 == 4:
+			# Checks if line is undrawn and returns that
+			return 0
+
+		# to Non-adjacent node
+		else 
+			return null
+	
+	# From Top Right node
+	elif node1 == 4:
+		# to Center node
+		elif node2 == 0:
+			# Checks if line is undrawn and returns that
+			return 3
+		
+		# to Right node
+		if node2 == 2:
+			# Checks if line is undrawn and returns that
+			return 4
+
+		# to Top Left node
+		elif node2 == 3:
+			# Checks if line is undrawn and returns that
+			return 0
+
+		# to Non-adjacent node
+		else 
+			return null
+
+	# From Bottom Left node
+	elif node1 == 5:
+		# to Center node
+		elif node2 == 0:
+			# Checks if line is undrawn and returns that
+			return 8
+
+		# to Left node
+		if node2 == 1:
+			# Checks if line is undrawn and returns that
+			return 7
+
+		# to Bottom Right node
+		elif node2 == 6:
+			# Checks if line is undrawn and returns that
+			return 11
+
+		# to Non-adjacent node
+		else 
+			return null
+	
+	# From Bottom Right node
+	elif node1 == 6:
+		# to Center node
+		elif node2 == 0:
+			# Checks if line is undrawn and returns that
+			return 9
+		
+		# to Right node
+		if node2 == 2:
+			# Checks if line is undrawn and returns that
+			return 10
+
+		# to Bottom Left node
+		elif node2 == 5:
+			# Checks if line is undrawn and returns that
+			return 11
+
+		# to Non-adjacent node
+		else 
+			return null
+
+	# Impossible
+	else:
+		return null
+
+func check_line_available(line_index) -> bool:
+	if line_index == null:
+		return false
+	return (mask_list[i] & current_pattern) == 0
   
 # placeholder function for starting to draw, needs more logic
 func _on_trigger_pressed():
@@ -174,10 +395,11 @@ func _on_trigger_pressed():
 		if node_positions[i].distance_to(last_position) < snap_radius:
 			last_node = i
 			drawing = true
+			#TODO: draw cursor line
+			return
 
 # placeholder function for ending drawing session, needs more logic
 func _on_trigger_released():
-	drawing = false
 	cast(evaluate_drawing())
 	reset_grid()
 
