@@ -72,6 +72,13 @@ var size_up_pattern = 0b001100010011
 #     * --- *
 var frog_pattern = 0b101100010010
 
+#     * --- *
+#      \   /   
+#  * --- * --- *
+#      /   \   
+#     * --- *
+var time_stop_pattern = 0b101101101101
+
 signal ice
 signal fire
 signal lightning
@@ -80,6 +87,7 @@ signal wind
 signal size_down
 signal size_up
 signal frog
+signal time_stop
 
 # 900 width 1200 height
 
@@ -132,6 +140,8 @@ func cast(spell_name):
 		emit(size_down)
 	elif spell_name == "frog":
 		emit(frog)
+	elif spell_name == "time_stop":
+		emit(time_stop)
 		
   
 # placeholder function for starting to draw, needs more logic
