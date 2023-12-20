@@ -385,7 +385,7 @@ func get_line_index(node1, node2):
 func check_line_available(line_index) -> bool:
 	if line_index == null:
 		return false
-	return (mask_list[i] & current_pattern) == 0
+	return (mask_list[line_index] & current_pattern) == 0
   
 # placeholder function for starting to draw, needs more logic
 func _on_trigger_pressed():
