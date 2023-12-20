@@ -4,6 +4,7 @@ var last_position = Vector2(0.0, 0.0)
 var mouse_position = Vector2(0.0, 0.0)
 var snap_radius = 10 # radius where the pen snaps to the node and draws a line
 var drawing = false # variable tracking if the trigger on the controller is depressed
+var last_node = null # variable tracking the node that is currently being drawn fron. Is null or 0-11
 var second_to_last_node = null # variable tracking the node that can undo the last line segment. Is null or 0-11
 
 # format of indices:
@@ -28,7 +29,7 @@ var ice_pattern = 0b110010111011
 #  * --- *     *
 #   \   /     /
 #     * --- *
-var fire_pattern = 0b11011011100
+var fire_pattern = 0b110110111000
 
 #     *     *
 #   /  \      \
@@ -91,9 +92,10 @@ signal time_stop
 
 # 900 width 1200 height
 
-# assuming x, y
-# center, left, right
-var node_positions = [Vector2(450, 600), Vector2(100, 60), Vector2(), Vector2(), Vector2(), Vector2(), Vector2()]
+# (x, y) pixel offset from top left corner as (0, 0)
+# center, left, right, top left, top right, bottom left, bottom right
+#    0  ,  1  ,   2  ,    3    ,     4    ,      5     ,      6
+var node_positions = [Vector2(450, 600), Vector2(100, 600), Vector2(800, 600), Vector2(237, 297), Vector2(625, 297), Vector2(237, 903), Vector2(625, 903)]
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -115,11 +117,31 @@ func _process(delta):
 		last_position.y = mouse_position.y
 	# Check for new node snap
 	for node in node_positions:
-		if mouse_position.distance_to(node) < snap_radius
+		if mouse_position.distance_to(node) < snap_radius:
+
 
   
 func evaluate_drawing() -> string:
-
+	if pattern == ice_pattern:
+		return "ice"
+	elif pattern == fire_pattern:
+		return "fire"
+	elif pattern == lightning_pattern:
+		return "lightning"
+	elif pattern == water_pattern:
+		return "water"
+	elif pattern == wind_pattern:
+		return "wind"
+	elif pattern == size_up_pattern:
+		return "size_up"
+	elif pattern == size_down_pattern:
+		return "size_down"
+	elif pattern == frog_pattern:
+		return "frog"
+	elif pattern == time_stop_pattern:
+		return "time_stop"
+	else:
+		return "nothing"
 
 func cast(spell_name):
 	if spell_name == "nothing":
@@ -147,12 +169,17 @@ func cast(spell_name):
 # placeholder function for starting to draw, needs more logic
 func _on_trigger_pressed():
 	last_position = get_mouse_position()
-	drawing = true
+
+	for i in node_positions.length:
+		if node_positions[i].distance_to(last_position) < snap_radius:
+			last_node = i
+			drawing = true
 
 # placeholder function for ending drawing session, needs more logic
 func _on_trigger_released():
 	drawing = false
 	cast(evaluate_drawing())
+	reset_grid()
 
 func _on_button_pressed():
 	print("Button pressed")
