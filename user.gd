@@ -1,30 +1,25 @@
 extends Node3D
 
-@export var max_speed:= 2.5
-@export var dead_zone := 0.2
+var max_speed = 2.5
+var dead_zone = 0.2
 
-@export var smooth_turn_speed:= 45.0
-@export var smooth_turn_dead_zone := 0.2
+var smooth_turn_speed = 45.0
+var smooth_turn_dead_zone = 0.2
 
-@export var snap_turn_amount := 45.0
-@export var snap_turn_dead_zone := 0.9
-@export var snap_turn_cooldown := 0.3
+var snap_turn_amount = 45.0
+var snap_turn_dead_zone = 0.9
+var snap_turn_cooldown = 0.3
 
-@export var swap_cooldown := .3
+var swap_cooldown = 0.3
 
-signal win
-signal reset
+var input_vector = Vector2.ZERO
+var snap_turning = false # Smooth versus Snap turning
+var snap_turn_counter = 0.0 # Counter to track the cooldown of swapping turning modes
+var head = false # Flag for view-directed steering
+var left = false # Flag for dominant controller: left is true, right is false
+var swap_counter = 0.0 # Counter to track the cooldown of swapping controls
 
-var input_vector:= Vector2.ZERO
-var steering:= "head" # Head (head) versus Left Hand (left) versus Right Hand (right) directed steering
-var snap_turning:= false # Smooth versus Snap turning
-var snap_turn_counter:= 0.0 # Counter to track the cooldown of swapping turning modes
-var head:= false # Flag for swapping with head
-var left:= false # Flag for swapping with left controller
-var right:= false # Flag for swapping with right controller
-var swap_counter:= 0.0 # Counter to track the cooldown of swapping controls
-
-
+signal swap_hands
 
 
 # Called when the node enters the scene tree for the first time.
@@ -50,61 +45,17 @@ func _process(delta):
 		if self.swap_counter < 0.0:
 			self.swap_counter = 0.0
 	
-	# Handle swap if any
-	else:
-		# Detect swap bewteen two controllers
-		if (head or left or right) and not (head and left and right):
-			# If the head is involved
-			if head:
-				# If the steering method is currently view-directed steering
-				if steering == "head":
-					# If the left hand is involved in the swap
-					if left:
-						# If the left hand is currently controlling the hand-directed steering
-						if steering == "left":
-							steering = "left"
-					# If the right hand is involved in the swap
-					else:
-						# If the right hand is currently controlling the hand-directed steering
-						if steering == "right":
-							steering = "right"
-				# If the steering method is currently hand-directed steering
-				else:
-					# If the left hand is involved in the swap
-					if left:
-						# If the left hand is currently controlling the hand-directed steering
-						if steering == "left":
-							steering = "head"
-					# If the right hand is involved in the swap
-					else:
-						# If the right hand is currently controlling the hand-directed steering
-						if steering == "right":
-							steering = "head"
-			# Swapping controls between hands
-			else:
-				# If the left hand is currently steering,
-				if steering == "left":
-					# then swap it to the right hand
-					steering = "right"
-				# Otherwise,
-				else:
-					# swap controls to the left hand
-					steering = "left"
-			swap_counter = swap_cooldown
-		head = false
-		left = false
-		right = false
 	
 	
 	# Forward translation
 	# View Directed Steering
-	if steering == "head":
+	if head:
 		if self.input_vector.y > self.dead_zone or self.input_vector.y < -self.dead_zone:
 			var movement_vector = Vector3(0, 0, max_speed * -self.input_vector.y * delta)
 			self.position += movement_vector.rotated(Vector3.UP, $XRCamera3D.global_rotation.y)
 
 	# Hand Directed Steering (left)
-	elif steering == "left":
+	elif (not head) and left:
 		if self.input_vector.y > self.dead_zone or self.input_vector.y < -self.dead_zone:
 			# get movement direction
 			var movement_direction = Vector3(cos($LeftController.global_rotation.y + (PI/2)), 0, -sin($LeftController.global_rotation.y + (PI/2))) #I realize now that I could've just changed $XRCamera3D to $LeftController, but oh well
@@ -158,49 +109,32 @@ func process_input(input_name: String, input_value: Vector2):
 	if input_name == "primary":
 		input_vector = input_value
 
-
-func _label_swap(from_area: Area3D, to_area: Area3D) -> void:
-	print("Area: " + from_area.name + " collided with Area: " + to_area.name)
-
-	# Exit if swap is on cooldown
-	if swap_counter != 0.0:
-		return
-	
-	if from_area.name == "HeadArea3D":
-		head = true
-	if to_area.name == "HeadArea3D":
-		head = true
-	if from_area.name == "LeftHandArea3D":
-		left = true
-	if to_area.name == "LeftHandArea3D":
-		left = true
-	if from_area.name == "RightHandArea3D":
-		right = true
-	if to_area.name == "RightHandArea3D":
-		right = true
-
 func reset_position():
 	self.position.x = 0.0
-  self.position.y = 0.0
+	self.position.y = 0.0
 	self.position.z = 0.0
-	self.rotation.y = 0.0
+	self.rotation.y = PI
 
-func _on_head_area_3d_area_entered(area):
-	if area.name == "LeftHandArea3D" or area.name == "RightHandArea3D":
-		_label_swap($HeadArea3D, area)
+func swap_hands():
+	left = not left
 
+func swap_turning():
+	snap_turning = not snap_turning
 
-func _on_left_controller_area_3d_area_entered(area):
-	if area.name == "HeadArea3D" or area.name == "RightHandArea3D":
-		_label_swap($LeftHandArea3D, area)
+func swap_steering():
+	head = not head
 
-func _on_right_controller_area_3d_area_entered(area):
-	if area.name == "LeftHandArea3D" or area.name == "HeadArea3D":
-		_label_swap($RightHandArea3D, area)
-
+# Signals
 func _on_user_reset():
 	self.reset_position()
 
 func _on_button_pressed(name):
-	if name == "ax_button" or "by_button":
-		snap_turning = not snap_turning
+	if name == "ax_button"
+		swap_turning()
+		
+	if name == "by_button":
+		swap_steering()
+
+func _on_left_controller_area_3d_entered(area):
+	if name == "":
+		swap_turning()
